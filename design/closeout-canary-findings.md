@@ -136,7 +136,30 @@ seeing patterns. After 5+ uneventful sessions, canary is stable.
 
 <!-- New entries go BELOW this line in reverse-chronological order (newest first) -->
 
-### 2026-05-29 — First /depart + /closeout --quick (docs-only session)
+### 2026-05-29 — /closeout invoked in capital-manager, but session work was elsewhere (F7)
+
+- **Branch:** production · **Machine:** Laptop
+- **/closeout result:** no-op — capital-manager unchanged (0 ahead, 0 dirty); did NOT run the gate
+- **What happened:** User ran `/closeout` in capital-manager, but this session's work
+  (the F5 resolution) all landed in the dotfiles repo (`~/.claude/`, pushed 0.2.0) and
+  the vault (pushed). capital-manager had nothing to close out.
+
+#### F7 — /closeout is cwd-project-scoped, but session work can span/target other repos
+`/closeout` assumes "the session's work == the current directory's project." False when
+you spend a session working on the dotfiles repo, the vault, or several projects at once.
+Running it in capital-manager would build an unchanged project (~10 min) and write a
+"nothing changed" session.md. **Options to consider before Phase 2:**
+  1. `/closeout` detects "cwd project is clean + 0 ahead" → reports "nothing to close
+     out here" and skips the gate (cheap, honest). Pairs with F6.
+  2. `/closeout` could scan known repos (dotfiles, vault, ~/Workspaces/*) and report which
+     actually changed this session, closing out the right one(s). (More machinery.)
+  3. Accept cwd-scoping; user is responsible for running /closeout in the right repo.
+Leaning (1) for now: at minimum, a clean+synced cwd project should short-circuit to
+"nothing to close out" instead of running a full build. The dotfiles repo itself has no
+claude.yaml (it's not a gated project), so its "closeout" is just the commits — which
+we already did.
+
+
 
 - **Branch:** production · **Machine:** Laptop (Thomass-MacBook-Pro)
 - **/closeout result:** warnings — ran `--quick` (gate + security skipped; hygiene pass, 0 warnings)
