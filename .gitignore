@@ -1,0 +1,20 @@
+# Whitelist approach: ignore everything by default, then un-ignore
+# specifically what we want to sync. Safer than enumerating exclusions —
+# new per-machine state added later won't accidentally get committed.
+
+*
+
+# Repo metadata
+!.gitignore
+!README.md
+
+# Skill version
+!VERSION
+
+# Global commands (the closeout family + any other shared slash commands)
+!commands/
+!commands/*.md
+
+# Reference docs read by the global skills
+!docs/
+!docs/*.md
