@@ -127,11 +127,15 @@ For each hook in `post_pull_hooks`:
 ```
 arrive summary:
   workstation: <hostname>
-  branch: <current>
-  pulled: <N commits, M files>
-  hooks ran: [npm install]
+  branch:      <current>
+  pulled:      <N commits, M files>          ← the cross-machine handoff
+  hooks ran:   [npm install]
 
-Suggested next: /resume to restore the previous session.
+Suggested next: /resume — it reads the pulled git log to reconstruct where
+work stands. (A local .claude/session.md from the previous machine won't be
+here; it's same-machine-only. /resume handles that.)
 ```
 
-If `suggest_resume: true` and `.claude/session.md` exists: append nudge.
+If `suggest_resume: true`: always suggest `/resume` (it reconstructs from git
+even when no local session.md exists). If a local session.md happens to be
+present (you'd been on this box before), `/resume` uses it as the richer source.

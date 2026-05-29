@@ -200,6 +200,14 @@ Hygiene findings are warnings — they do NOT block. Collect:
 
 ### Step 6 — Draft session.md
 
+> **Scope of session.md:** It is **same-machine working memory** — gitignored,
+> per-project, "where was I on THIS box." It does NOT travel to other
+> workstations. Cross-machine handoff is carried by the **git commits**
+> (which `/depart` ensures are pushed); `/resume` on a fresh machine
+> reconstructs from `git log` and reads session.md only if one exists locally.
+> Don't write cross-machine instructions here expecting another machine to see
+> them — put durable intent in commit messages.
+
 Read `~/.claude/docs/session-template.md` (or the project override at `closeout.session_md.template`).
 
 Substitute placeholders:

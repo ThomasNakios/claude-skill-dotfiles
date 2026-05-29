@@ -125,14 +125,30 @@ Branches:
 
 After this step, report whether vault was synced or skipped.
 
+### Cross-machine handoff note (framing)
+
+**The pushed git commits ARE the cross-machine handoff.** `session.md` is
+same-machine working memory (gitignored) — it stays on THIS box and does not
+travel. So the receiving machine's continuity comes from the commits you just
+pushed, not from session.md.
+
+- If the session produced meaningful work, ensure the commit messages carry the
+  intent (they're what the next machine reads). If they're thin, consider an
+  amend or a follow-up annotation commit before departing.
+- If you did **vault** work this session, that's separate — update the vault's
+  own `~/vault/05-system/operations/session-handoff.md` (the vault's canonical
+  cross-machine doc) if you haven't. `/depart` does NOT auto-write project state
+  into it.
+
 ### Final summary
 
 ```
 depart summary:
   workstation: <hostname>
-  branch: <current>
-  pushed: [branch1, branch2]
-  session.md: fresh (written 14 minutes ago)
+  branch:      <current>
+  pushed:      [branch1, branch2]            ← the cross-machine handoff
+  session.md:  written (same-machine only; stays here)
 
-Ready. On the receiving machine, run /arrive to pull, then /resume to restore session.
+Ready. On the receiving machine: /arrive to pull the commits, then /resume
+(it reconstructs from git log; session.md won't be there — that's expected).
 ```

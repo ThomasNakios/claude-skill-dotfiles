@@ -147,7 +147,17 @@ seeing patterns. After 5+ uneventful sessions, canary is stable.
 - **Two real findings (see F5, F6 below)**
 - **Action items:** decide session.md cross-machine behavior (F5); consider auto-`--quick` for no-code sessions (F6)
 
-#### F5 — session.md is gitignored, so it does NOT cross machines (DESIGN TENSION)
+#### F5 — RESOLVED 2026-05-29 (B-refined): session.md is same-machine; git is the cross-machine handoff
+**Resolution:** Split the two conflated needs. `session.md` is explicitly
+same-machine working memory (gitignored, unchanged). Cross-machine handoff =
+the pushed git commits; `/resume` on a fresh machine reconstructs from `git log`
+and uses a local session.md only if present. The vault's `session-handoff.md`
+stays the canonical cross-machine doc for *vault* work; closeout does not
+auto-write project state into it (avoids vault pollution + Obsidian-quit gating).
+Implemented in closeout.md (Step 6 scope note), resume.md (git-log fallback),
+depart.md + arrive.md (honest wording). Design spec §6 updated. Original tension below.
+
+
 `.claude/session.md` is gitignored (design §6: "per-machine working memory"). But
 `/depart`→`/arrive`→`/resume` is framed as cross-machine handoff. A gitignored
 session.md never reaches the receiving workstation — `/resume` on another machine

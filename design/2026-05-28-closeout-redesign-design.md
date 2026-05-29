@@ -207,6 +207,16 @@ Choices made that future-you should know about.
 
 - **One file at a time.** Overwritten each closeout. No log history — git provides that.
 - **Gitignored.** Working memory, not project metadata.
+- **Same-machine only (resolved 2026-05-29, finding F5).** session.md does NOT
+  travel to other workstations. It answers "where was I on THIS box." The
+  **cross-machine handoff is the pushed git commits** — `/depart` ensures they're
+  pushed; `/resume` on a different machine reconstructs from `git log` and uses a
+  local session.md only if one exists. The vault's own
+  `session-handoff.md` remains the canonical cross-machine doc for *vault* work;
+  the closeout family does not auto-write project state into it. This split (a)
+  fixes the original conflation, (b) avoids committing working-notes churn to
+  project branches, (c) sidesteps the Obsidian-quit gating on vault writes, and
+  (d) scales to all 15 projects with zero new machinery.
 - **Branch-aware warning:** if `branch` in existing session.md differs from current branch, `resume` warns.
 - **Stale detection:** if `written_at` is >7 days old, `resume` flags it.
 - **Draft-then-confirm:** closeout drafts body sections from session context; user reviews/edits before write.

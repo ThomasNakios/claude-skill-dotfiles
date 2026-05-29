@@ -40,7 +40,29 @@ FAMILY
 ### Locate session.md
 
 1. Path from `.claude/claude.yaml` → `closeout.session_md.path` (default `.claude/session.md`).
-2. If missing: print "No session.md found. To start a new session, work normally; run `/closeout` at the end to write one." STOP with exit 0.
+2. If missing: this is the normal case after arriving on a DIFFERENT machine
+   (session.md is gitignored, same-machine-only — it didn't travel). Fall back
+   to **git-log reconstruction** (see below) instead of stopping. Only print
+   "no session to restore" if git also yields nothing.
+
+### Cross-machine fallback — reconstruct from git
+
+When there's no local session.md (e.g., you just `/arrive`d on another
+workstation), the handoff is the pushed commits. Reconstruct context:
+
+```bash
+git fetch --quiet 2>/dev/null
+git log --oneline -15
+git log --since="2 days ago" --pretty=format:'%h %s' 2>/dev/null
+git diff --stat "@{u}"...HEAD 2>/dev/null   # if upstream tracking exists
+```
+
+Summarize: recent commits, what changed, current branch, and where work
+appears to stand. Tell the user "No local session.md (it's same-machine);
+reconstructed from git." Then offer to continue.
+
+If a local session.md DOES exist (same machine you closed out on), use it —
+it's richer. Parse it per below.
 
 ### Parse
 
