@@ -75,7 +75,7 @@ security:
     - name: <string>
       description: <string>
       check:
-        kind: grep-required | grep-required-pair | grep-forbidden
+        kind: grep-required | grep-required-pair | grep-forbidden | shell
         # kind=grep-required:
         in_files: <glob>
         required_pattern: <regex>
@@ -88,6 +88,9 @@ security:
         # kind=grep-forbidden:
         pattern: <regex>
         include: [<glob>, ...]
+        # kind=shell: project-provided audit script must exit 0
+        cmd: <shell-string>           # e.g. "npm run audit:tenant-isolation"
+        timeout_seconds: <int>        # optional; default 60
       source: <path-or-url>         # where this rule is defined
 ```
 
