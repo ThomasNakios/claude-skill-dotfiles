@@ -92,7 +92,10 @@ handle_migrate() {
     fi
   done
   for f in "${PER_MACHINE_FILES[@]}"; do
-    if [ -e "$backup/$f" ]; then
+    # Use -L (symlink test) OR -e (target exists) so we preserve the
+    # symlink even when its target (e.g. iCloud Drive) is momentarily
+    # unreachable. Critical for CLAUDE.md → iCloud symlink on Mac Studio.
+    if [ -L "$backup/$f" ] || [ -e "$backup/$f" ]; then
       cp -P "$backup/$f" "$CLAUDE_DIR/"
       printf '    + %s\n' "$f"
     fi
