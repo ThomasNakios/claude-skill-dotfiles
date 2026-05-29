@@ -77,6 +77,25 @@ For each local branch where `git rev-list <branch>...origin/<branch>` shows comm
 1. If branch is in `protected_branches`: print warning, prompt user to confirm.
 2. Else: print `▶ push <branch>` and `git push <remote> <branch>` (unless `DRY_RUN`).
 
+### Sync ~/.claude/ dotfiles repo
+
+After the project's branches are pushed, also sync any local changes to the
+global skill files so the next workstation gets them.
+
+```bash
+if [ -d ~/.claude/.git ]; then
+  ( cd ~/.claude && git status --porcelain )
+fi
+```
+
+- If `~/.claude/` is not a git repo: skip. (Workstation isn't using the dotfiles repo.)
+- If clean: nothing to do.
+- If dirty: list the changed files. Ask user "Commit + push these skill changes? [y/N/edit-message]".
+  - On `y`: stage tracked changes (`git add -u`), commit with `chore(skill): <branch-or-timestamp>`, push to origin main. (Skip if `DRY_RUN`.)
+  - On `edit-message`: prompt for message, then commit + push.
+  - On `N`: skip; warn user the receiving machine will be on an older version.
+- After push, report the new `~/.claude/VERSION` line.
+
 ### Final summary
 
 ```

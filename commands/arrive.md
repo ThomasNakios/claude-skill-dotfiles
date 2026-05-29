@@ -37,6 +37,25 @@ FAMILY
 
 ## Execution
 
+### Step 0 — Sync ~/.claude/ from the dotfiles repo (best-effort)
+
+Before pulling the project, refresh the global skill files so this workstation
+runs the latest gate/hygiene/closeout/etc.
+
+```bash
+if [ -d ~/.claude/.git ]; then
+  ( cd ~/.claude && git fetch -q && git status --porcelain )
+fi
+```
+
+- If `~/.claude/` has uncommitted changes: warn the user and skip the auto-pull.
+  They probably mean to commit those locally first (via `/depart`).
+- If clean: `cd ~/.claude && git pull --ff-only -q origin main` (unless `DRY_RUN`).
+  If fast-forward fails (divergent history): report and ask user to resolve manually.
+- If `~/.claude/` is not a git repo: skip silently. (Workstation hasn't been bootstrapped.)
+
+After pull, report the new `~/.claude/VERSION` line.
+
 ### Load config
 
 `.claude/claude.yaml` → read `arrive` block. Defaults:
