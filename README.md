@@ -14,48 +14,58 @@ Everything else under `~/.claude/` is per-machine state (memory, projects,
 sessions, cache, history, plugins, settings, etc.) and stays local. See
 `.gitignore` for the whitelist.
 
-## Bootstrap a new workstation
+## Sync — one script, any workstation, anytime
+
+`sync.sh` is the universal entry point. It's idempotent: safe to run on a
+fresh workstation (clones), on a migration target (backs up per-machine state
+then clones then restores), or on an already-synced workstation (fast-forward
+pulls). It auto-detects which case you're in.
+
+**First time on a new workstation** (or any time you want a clean re-sync from
+a non-bootstrapped state):
 
 ```bash
-# Backup any existing per-machine state
-mv ~/.claude ~/.claude.local-backup 2>/dev/null
-
-# Clone shared skill config into ~/.claude/
-git clone https://github.com/ThomasNakios/claude-skill-dotfiles.git ~/.claude
-
-# Restore per-machine state from backup
-for d in memory projects sessions session-env shell-snapshots file-history \
-         backups cache debug downloads tasks plans ide hooks bin skills \
-         plugins paste-cache; do
-  [ -d ~/.claude.local-backup/"$d" ] && cp -r ~/.claude.local-backup/"$d" ~/.claude/
-done
-
-# Restore individual per-machine files
-for f in CLAUDE.md settings.json history.jsonl mcp-needs-auth-cache.json \
-         stats-cache.json .last-cleanup .last-update-result.json; do
-  [ -e ~/.claude.local-backup/"$f" ] && cp -P ~/.claude.local-backup/"$f" ~/.claude/
-done
-
-# Verify
-ls ~/.claude/commands/ ~/.claude/docs/ ~/.claude/VERSION
+curl -fsSL https://raw.githubusercontent.com/ThomasNakios/claude-skill-dotfiles/main/sync.sh | bash
 ```
 
-After verification, you can `rm -rf ~/.claude.local-backup`.
+**Already bootstrapped** — pull latest skill updates:
+
+```bash
+~/.claude/sync.sh
+```
+
+The script reports its detected state up front:
+
+| State | Action |
+|---|---|
+| `fresh` | `~/.claude/` doesn't exist → clones the repo |
+| `migrate` | `~/.claude/` exists but isn't a git repo → backs up per-machine state, clones, restores state. Backup preserved at `~/.claude.bootstrap-backup.<timestamp>/` until you remove it. |
+| `synced-clean` | Already a git repo, no local changes → fast-forward pull |
+| `synced-dirty` | Already a git repo, has local changes → refuses to pull. Tells you how to resolve (`/depart` to commit first, or discard) |
+| `wrong-remote` | Already a git repo but points elsewhere → refuses to proceed. Investigate manually. |
+
+Per-machine state preserved across `migrate` runs:
+
+- Dirs: `memory/`, `projects/`, `sessions/`, `session-env/`, `shell-snapshots/`,
+  `file-history/`, `backups/`, `cache/`, `debug/`, `downloads/`, `tasks/`,
+  `plans/`, `ide/`, `hooks/`, `bin/`, `skills/`, `plugins/`, `paste-cache/`
+- Files: `CLAUDE.md`, `settings.json`, `history.jsonl`,
+  `mcp-needs-auth-cache.json`, `stats-cache.json`, `.last-cleanup`,
+  `.last-update-result.json`
+
+(`CLAUDE.md` is typically a symlink to iCloud Drive — symlinks are preserved.)
 
 ## Sync discipline
 
-Sync is integrated into the workflow commands `/depart` (push) and `/arrive`
-(pull) — see those commands' execution sections. Behavior:
+`sync.sh` is also called automatically by the workflow commands:
 
-- `/depart` — if `~/.claude/` is dirty, prompts to commit + push before leaving.
-- `/arrive` — pulls latest before resuming. Warns on conflicts.
+- `/arrive` — runs `sync.sh` (synced-clean / synced-dirty path) before pulling the project. You start work on the latest skill files.
+- `/depart` — checks if `~/.claude/` has uncommitted changes; prompts to commit + push before leaving.
 
-Manual sync if needed:
-
-```bash
-cd ~/.claude && git pull        # before starting work
-cd ~/.claude && git add -u && git commit -m "..." && git push   # before leaving
-```
+You don't need to invoke `sync.sh` manually in day-to-day use — `/arrive` and
+`/depart` handle it. Direct invocation is useful for: bootstrapping new
+workstations, recovering from a `wrong-remote` or `synced-dirty` state, or
+forcing a sync between `/arrive`/`/depart` invocations.
 
 ## Versioning
 

@@ -8,6 +8,9 @@
 !.gitignore
 !README.md
 
+# Idempotent sync script (run on any workstation, anytime — installs or updates)
+!sync.sh
+
 # Skill version
 !VERSION
 

@@ -40,21 +40,26 @@ FAMILY
 ### Step 0 — Sync ~/.claude/ from the dotfiles repo (best-effort)
 
 Before pulling the project, refresh the global skill files so this workstation
-runs the latest gate/hygiene/closeout/etc.
+runs the latest gate/hygiene/closeout/etc. Delegate to the idempotent sync
+script:
 
 ```bash
-if [ -d ~/.claude/.git ]; then
-  ( cd ~/.claude && git fetch -q && git status --porcelain )
+if [ -x ~/.claude/sync.sh ]; then
+  ~/.claude/sync.sh           # unless DRY_RUN; the script is state-aware
 fi
 ```
 
-- If `~/.claude/` has uncommitted changes: warn the user and skip the auto-pull.
-  They probably mean to commit those locally first (via `/depart`).
-- If clean: `cd ~/.claude && git pull --ff-only -q origin main` (unless `DRY_RUN`).
-  If fast-forward fails (divergent history): report and ask user to resolve manually.
-- If `~/.claude/` is not a git repo: skip silently. (Workstation hasn't been bootstrapped.)
+The script handles all cases (clean pull, dirty warning, divergent history,
+non-bootstrapped workstation). Read its reported state and surface to the user
+as part of `/arrive`'s output.
 
-After pull, report the new `~/.claude/VERSION` line.
+- If the script reports `synced-dirty`: don't block — continue with project pull,
+  but tell the user their skill changes are still uncommitted and suggest
+  `/depart` later to push them.
+- If `wrong-remote`: surface the error; don't continue. User must investigate.
+- If the script isn't present at all (`~/.claude/sync.sh` missing): skip silently
+  and continue. (Older workstation; can be bootstrapped later with the curl
+  one-liner from the repo README.)
 
 ### Load config
 
