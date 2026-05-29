@@ -136,6 +136,25 @@ seeing patterns. After 5+ uneventful sessions, canary is stable.
 
 <!-- New entries go BELOW this line in reverse-chronological order (newest first) -->
 
+### 2026-05-29 — First real /gate run on capital-manager — GATE GREEN ✅
+
+- **Result:** 4/4 required commands PASSED. types 30s · lint 37s · design 5s · build 69s.
+  Total ~2.4 min sequential. (test: required=false, not run.)
+- **What this validates (positive canary data):**
+  - Gate mechanism works end-to-end — every command shell-executed + exit code captured/reported correctly
+  - `npm run build` completed fully (next build + verify:oauth + pagefind + llms) in **69s** with `.env.local` present
+  - design's sub-70% hierarchy check correctly stayed a WARNING (exit 0), didn't block — confirms warning-vs-block semantics
+- **F6 REVISED:** The "full gate is too heavy (5-10 min build)" worry was overblown — full gate
+  is ~2.4 min with a warm `node_modules`. The auto-`--quick` idea (F6) is now weaker; ~2.4 min
+  is acceptable for end-of-session. Keep F6 as "nice to have," not a priority. The real
+  reason to skip the gate is "nothing changed" (F7), not "gate too slow."
+- **Still un-battle-tested:** the 8 shell-based `security.rules` (run in /closeout Step 4, not
+  /gate). lint exercised `check:secrets` (overlaps one rule) but tenant-isolation / rls-policies /
+  api-route-auth / no-dark-prefix / no-hardcoded-role-strings haven't been fired yet. Next real
+  /closeout on a code-changing session should exercise them.
+- **Caveat:** ran all 4 as a data-gathering pass (not strict fail_fast); since build passed,
+  fail_fast would've behaved identically — no divergence observed.
+
 ### 2026-05-29 — /closeout invoked in capital-manager, but session work was elsewhere (F7)
 
 - **Branch:** production · **Machine:** Laptop
