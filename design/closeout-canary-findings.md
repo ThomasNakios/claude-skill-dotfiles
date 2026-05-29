@@ -136,6 +136,37 @@ seeing patterns. After 5+ uneventful sessions, canary is stable.
 
 <!-- New entries go BELOW this line in reverse-chronological order (newest first) -->
 
+### 2026-05-29 — First /depart + /closeout --quick (docs-only session)
+
+- **Branch:** production · **Machine:** Laptop (Thomass-MacBook-Pro)
+- **/closeout result:** warnings — ran `--quick` (gate + security skipped; hygiene pass, 0 warnings)
+- **What worked well:**
+  - `/depart` correctly detected: 9 unpushed commits, protected branch `production`, missing session.md, dotfiles+vault already clean
+  - Obsidian-aware vault step correctly skipped (Obsidian not running, vault clean/pushed)
+  - session.md drafted + written; production pushed after explicit protected-branch confirm
+- **Two real findings (see F5, F6 below)**
+- **Action items:** decide session.md cross-machine behavior (F5); consider auto-`--quick` for no-code sessions (F6)
+
+#### F5 — session.md is gitignored, so it does NOT cross machines (DESIGN TENSION)
+`.claude/session.md` is gitignored (design §6: "per-machine working memory"). But
+`/depart`→`/arrive`→`/resume` is framed as cross-machine handoff. A gitignored
+session.md never reaches the receiving workstation — `/resume` on another machine
+finds nothing. **Decision needed:**
+  1. Un-gitignore session.md so it travels (but then it's committed churn every session), OR
+  2. Accept session.md is same-machine-only (resume context when you return to THIS
+     machine); cross-machine handoff relies on git log + commit messages, OR
+  3. Commit session.md only on `/depart` (special-case the handoff moment).
+Leaning (3): keep it gitignored day-to-day, but `/depart` force-adds + commits it so
+the next machine's `/arrive`+`/resume` works. Revisit before Phase 2.
+
+#### F6 — depart-triggered closeout on a no-code session shouldn't force the full gate
+This session changed only docs + `.claude/claude.yaml`. A full `/closeout` would run
+`npm run build` (5-10 min, 4GB heap) + could hard-fail on pre-existing/env issues,
+blocking the session.md write. Chose `--quick` manually. Consider: `/closeout` auto-detects
+"no code changed since origin" and defaults to `--quick` (with an override flag).
+
+---
+
 ### 2026-05-29 — Canary launch session (bootstrap, not a real /closeout run)
 
 - **Branch:** production
