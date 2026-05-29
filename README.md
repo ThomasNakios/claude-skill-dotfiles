@@ -85,6 +85,30 @@ At each workstation boundary, three repos may need syncing:
 
 This prevents the workflow commands from racing with Obsidian's auto-commit while still covering the CLI-edits-with-Obsidian-quit case noted in your global CLAUDE.md.
 
+## Workstation verification — delegated to the vault
+
+`sync.sh` does NOT verify the workstation environment itself. The
+KnockersNoggin vault owns the canonical, comprehensive verifier:
+
+```
+~/vault/05-system/operations/scripts/verify-workstation.sh   (14 checks)
+```
+
+After syncing `~/.claude/`, `sync.sh` delegates to it (if present). That
+verifier is the single source of truth for workstation health — Obsidian Git
+plugin config, vault git state, Claude Code hooks + drift, CLAUDE.md
+recognition block, Cursor config, linters, boardroom mode, AND (check #14) the
+closeout skill family. We deliberately do not duplicate any of it here.
+
+| Concern | Owner |
+|---|---|
+| Distribute closeout skill commands → `~/.claude/commands/` | `sync.sh` (this repo) |
+| Verify the full workstation environment | vault's `verify-workstation.sh` |
+| Provision a fresh workstation (install hooks, plugins, identity) | vault's `install-workstation.sh` |
+
+If the vault isn't present on a machine, `sync.sh` still syncs the skill files
+and points you at the vault clone + `install-workstation.sh` to complete setup.
+
 ## Versioning
 
 When changing any global command or doc, bump `VERSION` (e.g. `0.1.0` →
