@@ -21,3 +21,8 @@
 # Reference docs read by the global skills
 !docs/
 !docs/*.md
+
+# Design docs for the closeout skill (spec, plan, canary findings) —
+# co-located with the code they describe. Not read at runtime.
+!design/
+!design/*.md
