@@ -67,6 +67,24 @@ You don't need to invoke `sync.sh` manually in day-to-day use — `/arrive` and
 workstations, recovering from a `wrong-remote` or `synced-dirty` state, or
 forcing a sync between `/arrive`/`/depart` invocations.
 
+## Cross-repo composition
+
+At each workstation boundary, three repos may need syncing:
+
+| Repo | Owner | Sync mechanism |
+|---|---|---|
+| Current project (cwd) | `/arrive` / `/depart` | git pull/push |
+| `~/.claude/` (this repo) | `/arrive` calls `sync.sh`; `/depart` prompts to push | git pull/push via `sync.sh` |
+| `~/vault/` (KnockersNoggin) | Obsidian Git plugin (auto-commit every 5 min) when running; `/arrive` / `/depart` when Obsidian is quit | Obsidian-aware fallback |
+
+**Obsidian-aware vault integration:**
+
+- `/depart` and `/arrive` detect whether Obsidian is running via `pgrep -i -x Obsidian`.
+- **Obsidian running:** Skip vault sync. Trust the Git plugin's 5-min auto-commit timer.
+- **Obsidian not running:** Treat vault like any other git repo — fetch on arrival, prompt to commit + push on departure.
+
+This prevents the workflow commands from racing with Obsidian's auto-commit while still covering the CLI-edits-with-Obsidian-quit case noted in your global CLAUDE.md.
+
 ## Versioning
 
 When changing any global command or doc, bump `VERSION` (e.g. `0.1.0` →

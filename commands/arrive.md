@@ -37,7 +37,7 @@ FAMILY
 
 ## Execution
 
-### Step 0 — Sync ~/.claude/ from the dotfiles repo (best-effort)
+### Step 0a — Sync ~/.claude/ from the dotfiles repo (best-effort)
 
 Before pulling the project, refresh the global skill files so this workstation
 runs the latest gate/hygiene/closeout/etc. Delegate to the idempotent sync
@@ -60,6 +60,32 @@ as part of `/arrive`'s output.
 - If the script isn't present at all (`~/.claude/sync.sh` missing): skip silently
   and continue. (Older workstation; can be bootstrapped later with the curl
   one-liner from the repo README.)
+
+### Step 0b — Sync vault (Obsidian-aware)
+
+If `~/vault/` exists and is a git repo, refresh it so personal notes from the
+previous workstation are visible — but only if Obsidian isn't already managing
+the sync.
+
+```bash
+OBSIDIAN_RUNNING=false
+if pgrep -i -x Obsidian >/dev/null 2>&1; then
+  OBSIDIAN_RUNNING=true
+fi
+```
+
+Branches:
+
+- `~/vault/` does not exist OR is not a git repo: skip silently.
+- Obsidian is running: report **"Vault: Obsidian active — it'll pull on its own. Skipping."** Don't fight the Git plugin.
+- Obsidian is NOT running:
+  - `git -C ~/vault fetch --quiet`
+  - If `git -C ~/vault status --porcelain` shows uncommitted local changes: warn
+    and skip pull (don't clobber). Tell user to resolve via `/depart` or manually.
+  - Else: `git -C ~/vault pull --ff-only --quiet origin <main-branch>` (unless `DRY_RUN`).
+    On fast-forward failure: warn about divergent history; user resolves manually.
+
+Report what happened to the vault (synced, skipped, or warned).
 
 ### Load config
 

@@ -96,6 +96,35 @@ fi
   - On `N`: skip; warn user the receiving machine will be on an older version.
 - After push, report the new `~/.claude/VERSION` line.
 
+### Sync vault (Obsidian-aware)
+
+If `~/vault/` exists and is a git repo, sync it too — but only if Obsidian
+isn't already managing it. Obsidian's Git plugin auto-commits every 5 min;
+duplicate manual sync would race with it.
+
+```bash
+# Detect Obsidian
+OBSIDIAN_RUNNING=false
+if pgrep -i -x Obsidian >/dev/null 2>&1; then
+  OBSIDIAN_RUNNING=true
+fi
+```
+
+Branches:
+
+- `~/vault/` does not exist OR is not a git repo: skip silently.
+- Obsidian is running: report **"Vault: Obsidian active — auto-commit handles sync. Skipping."** and move on. Trust the Git plugin.
+- Obsidian is NOT running:
+  - Check `git -C ~/vault/ status --porcelain`.
+  - If clean: report "Vault: clean."
+  - If dirty: list changes, prompt **"Commit + push vault changes? [y/N/edit-message]"**.
+    - On `y`: `cd ~/vault && git add -u && git commit -m "depart: <hostname> @ <timestamp>" && git push` (skip if `DRY_RUN`).
+    - On `edit-message`: prompt for message.
+    - On `N`: warn — the receiving machine won't see these vault edits.
+  - Even if working tree was clean, if local branch is ahead of remote: push (unless `DRY_RUN`).
+
+After this step, report whether vault was synced or skipped.
+
 ### Final summary
 
 ```
