@@ -101,9 +101,15 @@ Slash commands shipped from here:
 | `/closeout` | Session closure — composes gate + hygiene + security, writes `.claude/session.md` |
 | `/gate` | Quality gate — build, lint, types, design |
 | `/hygiene` | Project audit — stale files, naming, governance |
-| `/depart` | Workstation departure — commit + push |
-| `/arrive` | Workstation arrival — pull + post-pull hooks |
+| `/depart` | Workstation departure — commit + push (Obsidian-aware vault sync) |
+| `/arrive` | Workstation arrival — pull + post-pull hooks (Obsidian-aware vault sync) |
 | `/resume` | Session start — reads `.claude/session.md` |
+| `/family` | Discoverability — lists this family with version + project context |
+
+**Discoverability:** Run `/family` (or any command's `--help`) to see what's
+available and how it's wired up. `/family` is project-aware — if you're in a
+directory with a `.claude/claude.yaml` config, it shows what each command will
+actually run there.
 
 See the design spec in `capital-manager` (canary project):
 `docs/superpowers/specs/2026-05-28-closeout-redesign-design.md`
