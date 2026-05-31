@@ -147,16 +147,29 @@ install is actually needed:
 ```bash
 ROOT=$(git rev-parse --show-toplevel)
 NEED_INSTALL=false
-PM=""; INSTALL_CMD=""
+PM=""; INSTALL_ARGS=""
 
 if [ -f "$ROOT/package.json" ]; then
   # Pick package manager by lockfile (most specific wins).
-  if   [ -f "$ROOT/pnpm-lock.yaml" ];     then PM=pnpm; INSTALL_CMD="pnpm install --frozen-lockfile"
-  elif [ -f "$ROOT/yarn.lock" ];          then PM=yarn; INSTALL_CMD="yarn install --immutable"
-  elif [ -f "$ROOT/bun.lockb" ] || [ -f "$ROOT/bun.lock" ]; then PM=bun; INSTALL_CMD="bun install --frozen-lockfile"
-  elif [ -f "$ROOT/package-lock.json" ];  then PM=npm;  INSTALL_CMD="npm ci"
-  else                                         PM=npm;  INSTALL_CMD="npm install"   # no lockfile
+  if   [ -f "$ROOT/pnpm-lock.yaml" ];     then PM=pnpm; INSTALL_ARGS="install --frozen-lockfile"
+  elif [ -f "$ROOT/yarn.lock" ];          then PM=yarn; INSTALL_ARGS="install --immutable"
+  elif [ -f "$ROOT/bun.lockb" ] || [ -f "$ROOT/bun.lock" ]; then PM=bun; INSTALL_ARGS="install --frozen-lockfile"
+  elif [ -f "$ROOT/package-lock.json" ];  then PM=npm;  INSTALL_ARGS="ci"
+  else                                         PM=npm;  INSTALL_ARGS="install"   # no lockfile
   fi
+
+  # Resolve HOW to invoke the package manager. A repo may pin one via the
+  # "packageManager" field (e.g. "pnpm@9.0.0") without that binary being on
+  # PATH. corepack (ships with Node ≥16.9) shims the pinned version, so prefer
+  # `corepack <pm>` whenever the bare binary is missing but corepack exists.
+  if command -v "$PM" >/dev/null 2>&1; then
+    PM_RUN="$PM"
+  elif command -v corepack >/dev/null 2>&1; then
+    PM_RUN="corepack $PM"   # honors the pinned packageManager version
+  else
+    PM_RUN=""               # neither available — can't install
+  fi
+  INSTALL_CMD="${PM_RUN:+$PM_RUN }$INSTALL_ARGS"
 
   # Trigger when deps are absent (fresh clone) OR a lockfile/manifest changed
   # in this pull but no hook covered it.
@@ -168,8 +181,12 @@ if [ -f "$ROOT/package.json" ]; then
 fi
 
 if [ "$NEED_INSTALL" = true ]; then
-  echo "▶ deps: $REASON → $INSTALL_CMD"
-  # run $INSTALL_CMD here unless DRY_RUN
+  if [ -z "$PM_RUN" ]; then
+    echo "⚠ deps: $REASON, but '$PM' is not on PATH and corepack is unavailable — skipping. Install $PM (or enable corepack) and re-run /arrive."
+  else
+    echo "▶ deps: $REASON → $INSTALL_CMD"
+    # run $INSTALL_CMD here unless DRY_RUN
+  fi
 fi
 ```
 
@@ -178,6 +195,12 @@ Notes:
   `pnpm install --frozen-lockfile`, `yarn install --immutable`,
   `bun install --frozen-lockfile`) — reproducible, matches the lockfile exactly.
   Only the lockfile-less fallback uses a plain `install`.
+- **Corepack fallback:** if the chosen package manager isn't on PATH but the
+  repo pins it via `packageManager` (common with pnpm/yarn), the install is run
+  as `corepack <pm> …`, which shims the pinned version. If neither the bare
+  binary nor corepack is available, the step prints a `⚠ deps:` warning and
+  skips rather than failing the whole arrival — the user installs the PM (or
+  enables corepack) and re-runs `/arrive`.
 - If `DRY_RUN`: print the `▶ deps:` line but do **not** run the install.
 - If the install command fails (e.g. frozen lockfile out of sync with
   `package.json`): report the failure and exit non-zero (exit code 1), same as a
