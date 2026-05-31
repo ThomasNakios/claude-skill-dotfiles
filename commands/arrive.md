@@ -6,7 +6,7 @@ description: Workstation arrival — pull latest, run post-pull hooks, suggest /
 
 ## Help
 
-Arrive at this workstation: pull latest changes, run post-pull hooks (e.g., npm install if package.json changed), and suggest `/resume` to restore the previous session.
+Arrive at this workstation: pull latest changes, run post-pull hooks (e.g., npm install if package.json changed), self-heal missing dependencies (fresh clone with no node_modules), and suggest `/resume` to restore the previous session.
 
 USAGE
   /arrive [--dry-run] [--help]
@@ -113,7 +113,13 @@ If rebase produces conflicts: abort the rebase, report files, ask user to resolv
 ### Compute changed files since previous HEAD
 
 ```bash
-git diff --name-only HEAD@{1} HEAD
+# HEAD@{1} doesn't exist on a fresh clone (reflog has 1 entry). Guard it,
+# otherwise the diff errors and the changed-files list is undefined.
+if git rev-parse --verify --quiet 'HEAD@{1}' >/dev/null; then
+  git diff --name-only 'HEAD@{1}' HEAD
+else
+  : # fresh clone — no previous HEAD, changed-files list is empty
+fi
 ```
 
 ### Post-pull hooks
@@ -121,6 +127,64 @@ git diff --name-only HEAD@{1} HEAD
 For each hook in `post_pull_hooks`:
 - If any file matched by `if_changed` glob is in the changed-files list: run `run` (unless `DRY_RUN`).
 - Print `▶ hook: <if_changed> changed → <run>`.
+
+If any hook ran a dependency install this invocation (its `run` contains
+`install`, `ci`, `pnpm i`, `yarn`, `bun install`, etc.), set `DEPS_HANDLED=true`
+so the self-heal step below doesn't double-install.
+
+### Dependency self-heal (zero-config safety net)
+
+`post_pull_hooks` only fire when a watched file appears in the changed-files
+list — so they never fire on a **fresh clone** (no previous HEAD → empty diff),
+which is exactly when dependencies have *never* been installed. This step is
+the safety net that makes a clone self-heal, and it needs no `claude.yaml`.
+
+Skip entirely if `DEPS_HANDLED=true` (a hook already installed this run).
+
+Detect the JS package manager from the lockfile at the repo root and whether an
+install is actually needed:
+
+```bash
+ROOT=$(git rev-parse --show-toplevel)
+NEED_INSTALL=false
+PM=""; INSTALL_CMD=""
+
+if [ -f "$ROOT/package.json" ]; then
+  # Pick package manager by lockfile (most specific wins).
+  if   [ -f "$ROOT/pnpm-lock.yaml" ];     then PM=pnpm; INSTALL_CMD="pnpm install --frozen-lockfile"
+  elif [ -f "$ROOT/yarn.lock" ];          then PM=yarn; INSTALL_CMD="yarn install --immutable"
+  elif [ -f "$ROOT/bun.lockb" ] || [ -f "$ROOT/bun.lock" ]; then PM=bun; INSTALL_CMD="bun install --frozen-lockfile"
+  elif [ -f "$ROOT/package-lock.json" ];  then PM=npm;  INSTALL_CMD="npm ci"
+  else                                         PM=npm;  INSTALL_CMD="npm install"   # no lockfile
+  fi
+
+  # Trigger when deps are absent (fresh clone) OR a lockfile/manifest changed
+  # in this pull but no hook covered it.
+  if [ ! -d "$ROOT/node_modules" ]; then
+    NEED_INSTALL=true; REASON="node_modules missing (fresh clone or never installed)"
+  elif git diff --name-only 'HEAD@{1}' HEAD 2>/dev/null | grep -Eq '(^|/)(package\.json|package-lock\.json|pnpm-lock\.yaml|yarn\.lock|bun\.lock(b)?)$'; then
+    NEED_INSTALL=true; REASON="lockfile/manifest changed in this pull"
+  fi
+fi
+
+if [ "$NEED_INSTALL" = true ]; then
+  echo "▶ deps: $REASON → $INSTALL_CMD"
+  # run $INSTALL_CMD here unless DRY_RUN
+fi
+```
+
+Notes:
+- If a lockfile exists, the install uses the **frozen/immutable** form (`npm ci`,
+  `pnpm install --frozen-lockfile`, `yarn install --immutable`,
+  `bun install --frozen-lockfile`) — reproducible, matches the lockfile exactly.
+  Only the lockfile-less fallback uses a plain `install`.
+- If `DRY_RUN`: print the `▶ deps:` line but do **not** run the install.
+- If the install command fails (e.g. frozen lockfile out of sync with
+  `package.json`): report the failure and exit non-zero (exit code 1), same as a
+  failed post-pull hook. Suggest the user reconcile the lockfile.
+- Non-JS projects (no `package.json`): this step is a silent no-op. Other
+  ecosystems (Python venvs, etc.) are out of scope here; add a per-project
+  `post_pull_hook` if needed.
 
 ### Final summary
 
@@ -130,6 +194,7 @@ arrive summary:
   branch:      <current>
   pulled:      <N commits, M files>          ← the cross-machine handoff
   hooks ran:   [npm install]
+  deps:        [npm ci — node_modules was missing] | up to date | n/a
 
 Suggested next: /resume — it reads the pulled git log to reconstruct where
 work stands. (A local .claude/session.md from the previous machine won't be
